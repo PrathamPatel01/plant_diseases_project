@@ -17,7 +17,6 @@ for class_dir in classes:
     ]
     image_counts[class_dir.name] = len(image_files)
 
-
 total_images = sum(image_counts.values())
 print("Total images:", total_images)
 
@@ -42,4 +41,36 @@ min_count = min(image_counts.values())
 
 imbalance_ratio = max_count / min_count
 print("\nImbalance ratio (max/min):", round(imbalance_ratio, 2))
+
+
+
+
+from PIL import Image
+import random
+
+sample_classes = random.sample(classes, 3)
+
+for class_dir in sample_classes:
+    images = list(class_dir.iterdir())
+    img_path = random.choice(images)
+    
+    with Image.open(img_path) as img:
+        print(f"{class_dir.name} → size: {img.size}")
+
+
+
+import matplotlib.pyplot as plt
+
+class_names = [cls for cls, _ in sorted_classes]
+counts = [count for _, count in sorted_classes]
+
+plt.figure(figsize=(12, 5))
+plt.bar(class_names, counts)
+plt.xticks(rotation=90)
+plt.title("Class Distribution (PlantVillage)")
+plt.xlabel("Class")
+plt.ylabel("Number of Images")
+plt.tight_layout()
+plt.show()
+
 
