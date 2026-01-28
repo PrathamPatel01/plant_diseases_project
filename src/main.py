@@ -42,13 +42,13 @@
 # if __name__ == "__main__":
 #     main()
 
-
-
-from src.dataset_utils import dataset_summary, list_class_dirs
+from src.dataset_utils import dataset_summary, list_class_dirs, make_minibatch
 from src.split_data import split_dataset
 from src.preprocess import preprocess_image
 from src.labels import build_label_map
 from src.encode_labels import encode_labels
+from src.config import IMAGE_SIZE
+
 
 def main():
     # Step 2 summary (counts + imbalance)
@@ -69,7 +69,7 @@ def main():
     print("Pixel range:", arr.min(), arr.max())
     print("Label:", sample_label)
 
-    # Step 5.1 sanity check: label mapping
+    # Step 5.1: label mapping
     class_dirs = list_class_dirs()
     class_to_idx, idx_to_class = build_label_map(class_dirs)
 
@@ -78,10 +78,19 @@ def main():
         print(k, "→", class_to_idx[k])
     print("Index 0 maps back to:", idx_to_class[0])
 
-    # Step 5.2 sanity check: encode labels
+    # Step 5.2: encode labels
     encoded_train = encode_labels(train_files, class_to_idx)
     print("\nOriginal:", train_files[0])
     print("Encoded:", encoded_train[0])
+
+    # Step 5.3: mini-batch (NOW encoded_train exists ✅)
+    X_small, y_small = make_minibatch(encoded_train, batch_size=8, image_size=IMAGE_SIZE)
+    print("\nMini-batch check:")
+    print("X shape:", X_small.shape)
+    print("y shape:", y_small.shape)
+    print("y values:", y_small)
+    print("X min/max:", X_small.min(), X_small.max())
+
 
 if __name__ == "__main__":
     main()
