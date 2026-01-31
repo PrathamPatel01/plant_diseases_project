@@ -58,6 +58,7 @@ def dataset_summary():
 
 import numpy as np
 from .preprocess import preprocess_image
+import random
 
 def make_minibatch(encoded_list, batch_size=8, image_size=(128, 128)):
     """
@@ -66,7 +67,13 @@ def make_minibatch(encoded_list, batch_size=8, image_size=(128, 128)):
       X: (batch_size, H, W, 3) float32 in [0,1]
       y: (batch_size,) int32
     """
-    batch = encoded_list[:batch_size]
+
+
+    
+    # batch = encoded_list[:batch_size]
+    
+    batch = random.sample(encoded_list, batch_size)
+
     H, W = image_size[1], image_size[0]  # because you stored (W,H) style earlier
 
     X = np.zeros((len(batch), H, W, 3), dtype=np.float32)
