@@ -91,7 +91,7 @@ def main():
     history = model.fit(
         train_gen,
         validation_data=val_gen,
-        epochs=10,
+        epochs=12,
         class_weight=class_weights,
         callbacks=callbacks,
         verbose=1
