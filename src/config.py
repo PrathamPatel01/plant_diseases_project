@@ -10,7 +10,7 @@ DATASET_DIR = ROOT_DIR / "data_raw" / "PlantVillage"
 IMAGE_SIZE = (128, 128)  # (width, height)
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
-# Splits
+# Splitss
 RANDOM_SEED = 42
 TRAIN_RATIO = 0.70
 VAL_RATIO = 0.15
