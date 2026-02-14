@@ -1,4 +1,4 @@
-#version 0.1
+#version 0
 from pathlib import Path
 
 DATASET_PATH = Path("/Users/prathamkumarpatel/Documents/Projects/plant_diseases_project/data_raw/PlantVillage")
