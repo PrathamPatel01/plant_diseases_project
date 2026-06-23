@@ -1,0 +1,9 @@
+tensorflow-macos==2.16.2
+tensorflow-metal
+streamlit
+scikit-learn
+pillow
+numpy
+pandas
+matplotlib
+plotly

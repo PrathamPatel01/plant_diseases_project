@@ -1,439 +1,137 @@
-# 🌿 Plant Disease Classification using CNN
+# 🌿 Plant Disease Intelligence
 
-A deep learning project for automatic plant disease identification using the PlantVillage dataset and TensorFlow/Keras.
+A deep learning project for **plant disease classification** using the **PlantVillage dataset**, **TensorFlow/Keras**, and **MobileNetV2 transfer learning**.
 
-The system learns visual patterns from leaf images and classifies them into healthy and diseased categories across multiple plant species.
-
----
-
-## 📌 Overview
-
-Plant diseases can significantly affect crop yield and food production. Early detection allows farmers to take preventive actions before diseases spread.
-
-This project builds a Convolutional Neural Network (CNN) that classifies leaf images into disease categories using the **PlantVillage dataset**.
-
-The entire pipeline was implemented from scratch, including:
-
-* Dataset analysis
-* Data preprocessing
-* Label encoding
-* Train/validation/test splitting
-* Batch generation
-* CNN model construction
-* Training with class weighting
-* Model checkpointing
-* Inference and prediction
+The project trains a model to classify leaf images into healthy or diseased plant categories and provides a clean **Streamlit dashboard** to explore dataset insights and model performance.
 
 ---
 
-# Dataset
+## 📌 Key Features
 
-Dataset used:
+* 38 plant disease classes
+* 54,305 leaf images
+* MobileNetV2 transfer learning
+* Stratified train/validation/test split
+* Class-weighted training for imbalance handling
+* Model evaluation with accuracy, precision, recall, and F1-score
+* Streamlit dashboard with dataset and performance insights
 
-**PlantVillage**
+---
 
-The dataset contains:
+## 📊 Result
 
-* **38 classes**
-* Healthy and diseased leaves
-* Multiple crop species
-* Images stored in class-specific folders
+Training for 3 epochs produced:
 
-Example:
+| Metric              |  Value |
+| ------------------- | -----: |
+| Validation Accuracy | 91.12% |
+| Test Accuracy       | 91.66% |
+| Classes             |     38 |
+| Images              | 54,305 |
 
-```
-PlantVillage/
+---
+
+## 🏗️ Project Structure
+
+```text
+plant_diseases_project/
 │
-├── Apple___Black_rot
-├── Apple___healthy
-├── Tomato___Early_blight
-├── Tomato___Late_blight
-├── Potato___healthy
-...
-```
-
----
-
-# Exploratory Data Analysis
-
-The dataset statistics include:
-
-* Number of classes
-* Total number of images
-* Top 5 largest classes
-* Bottom 5 smallest classes
-* Class imbalance ratio
-
-A class distribution histogram is generated using Matplotlib.
-
-Example analysis:
-
-```python
-imbalance_ratio = max_count / min_count
-```
-
-This helps understand whether some classes dominate the dataset.
-
----
-
-# Project Structure
-
-```
-plant_disease_project/
-│
-├── data_raw/
-│     └── PlantVillage/
-│
-├── outputs/
-│     └── mvp_model.keras
+├── app.py
+├── requirements.txt
+├── README.md
 │
 ├── src/
-│     ├── config.py
-│     ├── dataset_utils.py
-│     ├── preprocess.py
-│     ├── labels.py
-│     ├── encode_labels.py
-│     ├── split_data.py
-│     ├── minibatch.py
-│     ├── model.py
-│     ├── train.py
-│     └── pretty_predict.py
+│   ├── config.py
+│   ├── dataset.py
+│   ├── model.py
+│   ├── train.py
+│   └── predict.py
 │
-└── README.md
+├── data_raw/
+│   └── PlantVillage/
+│
+├── models/
+│   ├── plant_disease_model.keras
+│   └── labels.json
+│
+└── reports/
+    ├── history.json
+    ├── metrics.json
+    └── confusion_matrix.json
 ```
 
 ---
 
-# Preprocessing Pipeline
+## ⚙️ Setup
 
-Each image undergoes:
+Create environment:
 
-### 1. RGB conversion
-
-```python
-Image.open(img_path).convert("RGB")
+```bash
+conda create -n plant-disease python=3.11 -y
+conda activate plant-disease
 ```
 
-### 2. Resize
+Install dependencies:
 
-All images are resized to:
-
-```
-128 × 128
-```
-
-### 3. Normalization
-
-Pixel values are scaled from:
-
-```
-0–255
-```
-
-to
-
-```
-0–1
-```
-
-using:
-
-```python
-arr = np.asarray(img, dtype=np.float32) / 255.0
-```
-
-Output tensor shape:
-
-```
-(H, W, 3)
+```bash
+pip install -r requirements.txt
 ```
 
 ---
 
-# Dataset Split
+## 🏋️ Train Model
 
-The dataset is split using:
-
-| Set        | Ratio |
-| ---------- | ----- |
-| Train      | 70%   |
-| Validation | 15%   |
-| Test       | 15%   |
-
-Random seed:
-
-```python
-RANDOM_SEED = 42
+```bash
+python -m src.train
 ```
 
-ensures reproducibility.
+This saves the trained model and evaluation files inside:
 
----
-
-# Label Encoding
-
-Folder names are converted into integer labels.
-
-Example:
-
-```
-Apple___Black_rot → 0
-Apple___healthy → 1
-Tomato___Early_blight → 2
-...
-```
-
-Two mappings are maintained:
-
-```python
-class_to_idx
-idx_to_class
+```text
+models/
+reports/
 ```
 
 ---
 
-# Mini-Batch Generator
+## 🖥️ Run Dashboard
 
-A custom data generator based on:
-
-```python
-tensorflow.keras.utils.Sequence
+```bash
+streamlit run app.py
 ```
 
-loads images batch-by-batch instead of storing the entire dataset in RAM.
-
-Advantages:
-
-* Memory efficient
-* Supports shuffling
-* Scalable to larger datasets
-
-Batch shape:
-
-```
-(batch_size, 128, 128, 3)
-```
-
-Default:
-
-```python
-batch_size = 32
-```
+Open the local URL shown in the terminal.
 
 ---
 
-# CNN Architecture
+## 📦 Requirements
 
-The model consists of three convolution blocks.
+For Apple Silicon Mac:
 
-## Block 1
-
-```python
-Conv2D(32)
-MaxPooling2D()
+```text
+tensorflow-macos==2.16.2
+tensorflow-metal
+streamlit
+scikit-learn
+pillow
+numpy
+pandas
+matplotlib
+plotly
 ```
 
-## Block 2
-
-```python
-Conv2D(64)
-MaxPooling2D()
-```
-
-## Block 3
-
-```python
-Conv2D(128)
-MaxPooling2D()
-```
+For Windows/Linux, replace `tensorflow-macos` and `tensorflow-metal` with `tensorflow`.
 
 ---
 
-## Classification Head
-
-```python
-GlobalAveragePooling2D()
-
-Dense(128)
-
-Dropout(0.3)
-
-Dense(num_classes, activation="softmax")
-```
-
----
-
-# Loss Function
-
-Sparse categorical cross entropy:
-
-```python
-loss="sparse_categorical_crossentropy"
-```
-
----
-
-# Optimizer
-
-Adam optimizer:
-
-```python
-optimizer="adam"
-```
-
----
-
-# Training Strategy
-
-The model is trained using:
-
-```python
-model.fit()
-```
-
-with:
-
-* Training generator
-* Validation generator
-* Class weights
-* Early stopping
-* Model checkpointing
-
----
-
-## Class Imbalance Handling
-
-Class weights are computed using:
-
-```python
-weight = total_samples / (num_classes × class_count)
-```
-
-This prevents majority classes from dominating training.
-
----
-
-## Early Stopping
-
-```python
-EarlyStopping(
-    monitor="val_loss",
-    patience=3,
-    restore_best_weights=True
-)
-```
-
-Stops training when validation loss stops improving.
-
----
-
-## Model Checkpoint
-
-```python
-ModelCheckpoint(
-    "outputs/mvp_model.keras",
-    save_best_only=True
-)
-```
-
-Only the best-performing model is saved.
-
----
-
-# Inference Pipeline
-
-For a new image:
-
-```
-Input image
-        ↓
-RGB conversion
-        ↓
-Resize (128×128)
-        ↓
-Normalization
-        ↓
-Expand dimensions
-        ↓
-CNN model
-        ↓
-Softmax probabilities
-        ↓
-Argmax
-        ↓
-Predicted disease class
-```
-
----
-
-# Prediction Output
-
-Example:
-
-```
-Predicted class:
-
-Tomato___Late_blight
-
-Confidence:
-
-98.74%
-```
-
-The system also displays:
-
-### Top-5 predictions
-
-```
-1. Tomato___Late_blight
-2. Tomato___Early_blight
-3. Tomato___healthy
-4. Potato___Late_blight
-5. Pepper___healthy
-```
-
-along with confidence scores.
-
----
-
-# Technologies Used
+## 🧠 Tech Stack
 
 * Python
-* NumPy
-* TensorFlow
-* Keras
-* Pillow
-* Matplotlib
+* TensorFlow / Keras
+* MobileNetV2
+* Scikit-learn
+* Pandas
+* Plotly
+* Streamlit
 
----
-
-# Future Improvements
-
-* Data augmentation
-* Transfer learning with EfficientNet
-* ResNet50
-* MobileNetV3 deployment
-* Grad-CAM visualization
-* Streamlit web application
-* ONNX/TFLite export
-* Real-time mobile inference
-* Disease treatment recommendations
-
----
-
-# Key Learnings
-
-Through this project, the following concepts were implemented from scratch:
-
-* Computer Vision
-* Image preprocessing
-* Convolutional Neural Networks
-* Batch generation
-* Label encoding
-* Handling class imbalance
-* Early stopping
-* Model checkpointing
-* Multi-class classification
-* TensorFlow/Keras training pipeline
-* Model inference and probability decoding
 
