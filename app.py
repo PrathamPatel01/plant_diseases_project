@@ -17,7 +17,6 @@ from src.config import (
     MODEL_PATH,
     LABELS_PATH,
 )
-from src.dataset import dataset_summary
 
 
 # ============================================================
@@ -118,17 +117,61 @@ st.markdown(
 # ============================================================
 
 @st.cache_data
-def get_summary():
-    return dataset_summary()
-
-
-@st.cache_data
 def load_json(path: Path):
     if not path.exists():
         return None
 
     with open(path, "r", encoding="utf-8") as file:
         return json.load(file)
+
+
+@st.cache_data
+def get_summary():
+    """
+    Deployment-safe dataset summary.
+
+    Streamlit Cloud does not contain the full PlantVillage dataset.
+    So the app first reads reports/dataset_summary.json.
+    If that file is missing, it uses a small fallback summary.
+    """
+    summary_path = Path("reports/dataset_summary.json")
+
+    if summary_path.exists():
+        with open(summary_path, "r", encoding="utf-8") as file:
+            return json.load(file)
+
+    return {
+        "dataset_path": "PlantVillage dataset not included in deployed demo",
+        "total_classes": 38,
+        "total_images": 54305,
+        "image_counts": {
+            "Orange___Haunglongbing_(Citrus_greening)": 5507,
+            "Tomato___Tomato_Yellow_Leaf_Curl_Virus": 5357,
+            "Soybean___healthy": 5090,
+            "Peach___Bacterial_spot": 2297,
+            "Tomato___Bacterial_spot": 2127,
+            "Tomato___Tomato_mosaic_virus": 373,
+            "Raspberry___healthy": 371,
+            "Peach___healthy": 360,
+            "Apple___Cedar_apple_rust": 275,
+            "Potato___healthy": 152,
+        },
+        "top_classes": [
+            ["Orange___Haunglongbing_(Citrus_greening)", 5507],
+            ["Tomato___Tomato_Yellow_Leaf_Curl_Virus", 5357],
+            ["Soybean___healthy", 5090],
+            ["Peach___Bacterial_spot", 2297],
+            ["Tomato___Bacterial_spot", 2127],
+        ],
+        "bottom_classes": [
+            ["Tomato___Tomato_mosaic_virus", 373],
+            ["Raspberry___healthy", 371],
+            ["Peach___healthy", 360],
+            ["Apple___Cedar_apple_rust", 275],
+            ["Potato___healthy", 152],
+        ],
+        "imbalance_ratio": 36.23,
+    }
 
 
 def clean_class_name(class_name: str) -> str:
@@ -168,6 +211,11 @@ def build_class_dataframe(summary: dict) -> pd.DataFrame:
 
 
 def get_sample_images(class_name: str, limit: int = 6):
+    """
+    Local-only sample images.
+
+    On Streamlit Cloud, data_raw/ is not deployed, so this returns [].
+    """
     class_dir = DATASET_DIR / class_name
 
     if not class_dir.exists():
@@ -179,6 +227,9 @@ def get_sample_images(class_name: str, limit: int = 6):
         if image_path.is_file()
         and image_path.suffix.lower() in ALLOWED_EXTENSIONS
     ]
+
+    if not images:
+        return []
 
     return random.sample(images, min(limit, len(images)))
 
@@ -276,17 +327,19 @@ with tabs[0]:
         status_html = (
             '<div class="status-ready">Ready</div>'
             if model_ready
-            else '<div class="status-missing">Missing</div>'
+            else '<div class="status-missing">Demo Mode</div>'
         )
 
         st.markdown(
             f"""
             <div class="card">
                 <h3>System Status</h3>
-                <p class="small-text">Model artifact status</p>
+                <p class="small-text">Dashboard deployment status</p>
                 {status_html}
-                <p class="small-text">Model: {MODEL_PATH.name}</p>
-                <p class="small-text">Labels: {LABELS_PATH.name}</p>
+                <p class="small-text">
+                    The deployed dashboard uses saved reports and does not include
+                    the full dataset or model file.
+                </p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -406,69 +459,80 @@ with tabs[1]:
     with f3:
         st.metric("Visible Classes", len(filtered_df))
 
-    st.markdown("### Class Distribution")
+    if filtered_df.empty:
+        st.warning("No classes match the selected filters.")
+    else:
+        st.markdown("### Class Distribution")
 
-    fig = px.bar(
-        filtered_df,
-        x="Images",
-        y="Readable Class",
-        color="Type",
-        orientation="h",
-        text="Images",
-        title="Images per class",
-    )
-    fig.update_layout(
-        height=max(500, min(950, len(filtered_df) * 30)),
-        yaxis={"categoryorder": "total ascending"},
-    )
-    st.plotly_chart(make_chart_clean(fig), width="stretch")
+        fig = px.bar(
+            filtered_df,
+            x="Images",
+            y="Readable Class",
+            color="Type",
+            orientation="h",
+            text="Images",
+            title="Images per class",
+        )
+        fig.update_layout(
+            height=max(500, min(950, len(filtered_df) * 30)),
+            yaxis={"categoryorder": "total ascending"},
+        )
+        st.plotly_chart(make_chart_clean(fig), width="stretch")
 
-    st.markdown("### Sample Images")
+        st.markdown("### Class Details")
 
-    selected_class_readable = st.selectbox(
-        "Choose class",
-        filtered_df["Readable Class"].tolist(),
-    )
+        selected_class_readable = st.selectbox(
+            "Choose class",
+            filtered_df["Readable Class"].tolist(),
+        )
 
-    selected_class = filtered_df[
-        filtered_df["Readable Class"] == selected_class_readable
-    ]["Class"].iloc[0]
+        selected_class = filtered_df[
+            filtered_df["Readable Class"] == selected_class_readable
+        ]["Class"].iloc[0]
 
-    plant, condition = split_class_name(selected_class)
+        plant, condition = split_class_name(selected_class)
 
-    i1, i2, i3 = st.columns(3)
+        i1, i2, i3 = st.columns(3)
 
-    with i1:
-        st.metric("Plant", plant)
+        with i1:
+            st.metric("Plant", plant)
 
-    with i2:
-        st.metric("Condition", condition)
+        with i2:
+            st.metric("Condition", condition)
 
-    with i3:
-        st.metric("Images", f"{summary['image_counts'][selected_class]:,}")
+        with i3:
+            st.metric("Images", f"{summary['image_counts'][selected_class]:,}")
 
-    sample_images = get_sample_images(selected_class, limit=6)
+        st.markdown("### Sample Images")
 
-    image_cols = st.columns(3)
+        sample_images = get_sample_images(selected_class, limit=6)
 
-    for index, image_path in enumerate(sample_images):
-        with image_cols[index % 3]:
-            image = Image.open(image_path).convert("RGB")
-            st.image(
-                image,
-                caption=image_path.name,
-                width="stretch",
+        if sample_images:
+            image_cols = st.columns(3)
+
+            for index, image_path in enumerate(sample_images):
+                with image_cols[index % 3]:
+                    image = Image.open(image_path).convert("RGB")
+                    st.image(
+                        image,
+                        caption=image_path.name,
+                        width="stretch",
+                    )
+        else:
+            st.info(
+                "Sample images are available locally only. The deployed demo does not "
+                "include the full PlantVillage dataset because it is too large for GitHub."
             )
 
-    st.markdown("### Dataset Table")
+        st.markdown("### Dataset Table")
 
-    st.dataframe(
-        filtered_df[
-            ["Plant", "Condition", "Type", "Images", "Readable Class"]
-        ],
-        width="stretch",
-        hide_index=True,
-    )
+        st.dataframe(
+            filtered_df[
+                ["Plant", "Condition", "Type", "Images", "Readable Class"]
+            ],
+            width="stretch",
+            hide_index=True,
+        )
 
 
 # ============================================================
@@ -479,7 +543,7 @@ with tabs[2]:
     st.subheader("Model Performance")
 
     if history_data is None:
-        st.warning("Training history not found. Run `python -m src.train` first.")
+        st.warning("Training history not found. Add reports/history.json to show trends.")
     else:
         history_df = pd.DataFrame(history_data["history"])
         history_df["Epoch"] = range(1, len(history_df) + 1)
@@ -564,7 +628,7 @@ with tabs[2]:
     st.markdown("### Classification Report")
 
     if metrics_data is None:
-        st.warning("Metrics file not found. Run training first.")
+        st.warning("Metrics file not found. Add reports/metrics.json to show evaluation.")
     else:
         macro_avg = metrics_data.get("macro avg", {})
         weighted_avg = metrics_data.get("weighted avg", {})
@@ -599,31 +663,32 @@ with tabs[2]:
 
         metrics_df = pd.DataFrame(rows)
 
-        st.markdown("### Lowest F1-score Classes")
+        if not metrics_df.empty:
+            st.markdown("### Lowest F1-score Classes")
 
-        low_f1_df = metrics_df.sort_values("F1-score").head(10)
+            low_f1_df = metrics_df.sort_values("F1-score").head(10)
 
-        fig_f1 = px.bar(
-            low_f1_df,
-            x="F1-score",
-            y="Class",
-            orientation="h",
-            text="F1-score",
-            title="Classes with lowest F1-score",
-        )
-        fig_f1.update_layout(
-            height=520,
-            yaxis={"categoryorder": "total descending"},
-        )
-        st.plotly_chart(make_chart_clean(fig_f1), width="stretch")
+            fig_f1 = px.bar(
+                low_f1_df,
+                x="F1-score",
+                y="Class",
+                orientation="h",
+                text="F1-score",
+                title="Classes with lowest F1-score",
+            )
+            fig_f1.update_layout(
+                height=520,
+                yaxis={"categoryorder": "total descending"},
+            )
+            st.plotly_chart(make_chart_clean(fig_f1), width="stretch")
 
-        st.markdown("### Full Per-Class Metrics")
+            st.markdown("### Full Per-Class Metrics")
 
-        st.dataframe(
-            metrics_df.sort_values("F1-score"),
-            width="stretch",
-            hide_index=True,
-        )
+            st.dataframe(
+                metrics_df.sort_values("F1-score"),
+                width="stretch",
+                hide_index=True,
+            )
 
     st.info(
         """
