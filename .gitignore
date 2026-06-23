@@ -1,32 +1,23 @@
-cat > .gitignore <<'EOF'
-# Python cache
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 
-# Virtual environments
 .venv/
 venv/
 env/
 ENV/
 
-# Dataset and generated files
 data_raw/
 models/
-reports/
 outputs/
 
-# Model files
 *.keras
 *.h5
 *.pkl
 
-# Mac / editor
 .DS_Store
 .vscode/
 .idea/
 
-# Logs
 *.log
-EOF
