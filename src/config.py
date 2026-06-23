@@ -80,4 +80,4 @@ DROPOUT_RATE = 0.30
 # ============================================================
 
 APP_TITLE = "Plant Disease Intelligence"
-APP_SUBTITLE = "Enterprise AI dashboard for plant disease detection"
+APP_SUBTITLE = "Dashboard for plant disease detection"
